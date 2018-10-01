@@ -30,7 +30,7 @@ abstract class Main extends \XLite\Module\AModule
      */
     public static function getModuleName()
     {
-        return 'Coinbase Commerce Payment Gateway';
+        return 'Coinbase Commerce Payment gateway';
     }
 
     /**

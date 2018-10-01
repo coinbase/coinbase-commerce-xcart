@@ -108,6 +108,6 @@ class CoinbaseIpn extends \XLite\Controller\Customer\ACustomer
             'Callback request is invalid: ' . $message . PHP_EOL
         );
 
-        die();
+        exit(0);
     }
 }

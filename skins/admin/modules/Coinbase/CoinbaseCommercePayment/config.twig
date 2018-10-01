@@ -1,27 +1,27 @@
 <div class="webhook">
+  <p>{{ t('Copy Webhook URL')|raw }}</p>
   <div class="url">
-      {{ widget('XLite\\View\\Button\\CopyLink', copy=this.paymentMethod.getWebhookURL()) }}
       {{ this.paymentMethod.getWebhookURL() }}
+      {{ widget('XLite\\View\\Button\\CopyLink', copy=this.paymentMethod.getWebhookURL()) }}
   </div>
-    {{ widget('XLite\\View\\Tooltip', text=t('Webhook URL is your store\'s URL through which Coinbase Commerce informs your store about any changes in the order'), isImageTag='true', className='help-icon') }}
 </div>
 
 <div>
+  <h3>{{ t('How to use')|raw }}</h3>
   <ul>
-    <li class="step-1">
-      <div class="number">1</div>
-      <p>{{ t('Open the page "Webhooks" in the "Settings" section of https://commerce.coinbase.com/dashboard: https://commerce.coinbase.com/dashboard/settings')|raw }}</p>
+    <li>
+      <p>1. {{ t('Open the page "Settings" of https://commerce.coinbase.com/dashboard: https://commerce.coinbase.com/dashboard/settings')|raw }}</p>
     </li>
-    <li class="step-2">
-      <div class="number">2</div>
-      <p>{{ t('In the section "Webhook subscriptions", click "Add an endpoint".')|raw }}</p>
+    <li>
+      <p>2. {{ t('In the section "Webhook subscriptions", click "Add an endpoint".')|raw }}</p>
     </li>
-    <li class="step-3">
-      <div class="number">3</div>
-      <p>{{ t('In the form that opens, paste the "Webhook URL" value into the field "New Webhook Subscription" and click "Save".')|raw }}</p>
+    <li>
+      <p>3. {{ t('In the form that opens, paste the "Webhook URL" value into the field "New Webhook Subscription" and click "Save".')|raw }}</p>
+    </li>
+    <li>
+      <p>4. {{ t('Copy "App Key" and "Secret Key" from "Settings" page and past below.')|raw }}</p>
     </li>
   </ul>
-
 </div>
 
 <table cellspacing="1" cellpadding="5" class="settings-table">
