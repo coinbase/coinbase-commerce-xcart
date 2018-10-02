@@ -121,7 +121,7 @@ class CoinbaseCommercePayment extends \XLite\Model\Payment\Base\WebBased
         $billingAddress = $this->getProfile()->getBillingAddress();
         $chargeData = array(
             'local_price' => array(
-                'amount' => $this->formatCurrency($this->transaction->getValue()),
+                'amount' => $this->transaction->getValue(),
                 'currency' => $this->getCurrencyCode()
             ),
             'pricing_type' => 'fixed_price',
