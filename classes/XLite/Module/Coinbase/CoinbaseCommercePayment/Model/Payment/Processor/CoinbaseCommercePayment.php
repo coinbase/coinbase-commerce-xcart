@@ -43,18 +43,28 @@ class CoinbaseCommercePayment extends \XLite\Model\Payment\Base\WebBased
             $this->transaction->setNote('Customer has canceled checkout before completing their payments');
             $this->transaction->setStatus($transaction::STATUS_CANCELED);
 
-        } elseif ($transaction::STATUS_INPROGRESS == $this->transaction->getStatus()) {
-            $this->transaction->setStatus($transaction::STATUS_PENDING);
-        }
+            \XLite\Core\Operator::redirect(
+                $this->getCheckoutUrl()
+            );
+        } else {
+            $this->transaction->order->processSucceed();
 
-        \XLite\Core\Operator::redirect(
-            $this->getInvoiceUrl($transaction)
+            \XLite\Core\Operator::redirect(
+                $this->getInvoiceUrl($transaction)
+            );
+        }
+    }
+
+    private function getCheckoutUrl()
+    {
+        return \XLite::getInstance()->getShopURL(
+            \XLite\Core\Converter::buildURL('checkout'),
+            \XLite\Core\Config::getInstance()->Security->customer_security
         );
     }
 
     private function getInvoiceUrl($transaction)
     {
-
         return \XLite::getInstance()->getShopURL(
             \XLite\Core\Converter::buildURL('order', '', array('order_number' => $transaction->getOrder()->getOrderNumber())),
             \XLite\Core\Config::getInstance()->Security->customer_security
@@ -130,7 +140,7 @@ class CoinbaseCommercePayment extends \XLite\Model\Payment\Base\WebBased
                 \XLite\Core\Config::getInstance()->Company->company_name,
                 $this->transaction->getPublicTxnId()
             ),
-            'description' => implode($this->getOrderProducts(), ', '),
+            'description' => mb_substr(implode($this->getOrderProducts(), ', '), 0, 200),
             'metadata' => [
                 METADATA_SOURCE_PARAM => METADATA_SOURCE_VALUE,
                 METADATA_INVOICEID_PARAM  => $this->transaction->getPublicTxnId(),
@@ -139,15 +149,15 @@ class CoinbaseCommercePayment extends \XLite\Model\Payment\Base\WebBased
                 'firstName' => $billingAddress ? $billingAddress->getFirstname() : '',
                 'lastName' => $billingAddress ? $billingAddress->getLastname() : ''
             ],
-            'redirect_url' => $this->getReturnURL(null, true)
+            'redirect_url' => $this->getReturnURL(null, true),
+            'cancel_url' => $this->getReturnURL(null, true, true),
         );
 
-        $this->transaction->setDataCell(METADATA_TOKEN_PARAM, $token, METADATA_TOKEN_PARAM);
+        $this->transaction->setDataCell(METADATA_TOKEN_PARAM, $token, METADATA_TOKEN_PARAM, 'C');
+        \XLite\Core\Database::getEM()->flush();
 
         \CoinbaseSDK\ApiClient::init($this->getSetting('app_key'));
         $chargeObj = \CoinbaseSDK\Resources\Charge::create($chargeData);
-
-        $this->transaction->order->processSucceed();
 
         return $chargeObj->hosted_url;
     }
@@ -192,18 +202,6 @@ class CoinbaseCommercePayment extends \XLite\Model\Payment\Base\WebBased
             \XLite\Core\Converter::buildURL('coinbase_ipn', null, array(), \XLite::getCustomerScript()),
             \XLite\Core\Config::getInstance()->Security->customer_security
         );
-    }
-
-    /**
-     * Format currency
-     *
-     * @param float $value Currency value
-     *
-     * @return integer
-     */
-    protected function formatCurrency($value)
-    {
-        return $this->transaction->getCurrency()->roundValueAsInteger($value);
     }
 
     /**

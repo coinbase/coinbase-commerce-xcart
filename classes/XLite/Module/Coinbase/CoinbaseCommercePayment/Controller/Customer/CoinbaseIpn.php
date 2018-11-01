@@ -1,11 +1,11 @@
 <?php
 namespace XLite\Module\Coinbase\CoinbaseCommercePayment\Controller\Customer;
 
+use XLite\Module\CDev\Paypal\Model\Payment\Transaction;
+
 class CoinbaseIpn extends \XLite\Controller\Customer\ACustomer
 {
-    const EVENT_FAILED = 'charge:failed';
-    const EVENT_DELAYED = 'charge:delayed';
-    const EVENT_CONFIRMED = 'charge:confirmed';
+    private $transaction;
 
     public function __construct($params = array())
     {
@@ -18,20 +18,70 @@ class CoinbaseIpn extends \XLite\Controller\Customer\ACustomer
         $body = file_get_contents('php://input');
         $bodyArray = \json_decode($body, true);
 
-        if (!isset($bodyArray['event'])) {
-            $this->markCallbackRequestAsInvalid('Invalid payload provided. No event key.');
-
+        if (!isset($bodyArray['event']['data'])) {
+            $this->markCallbackRequestAsInvalid('Invalid payload provided. Charge not found.');
             return false;
         }
 
-        $event = new \CoinbaseSDK\Resources\Event($bodyArray['event']);
-        $charge = $event->data;
+        $charge = new \CoinbaseSDK\Resources\Charge($bodyArray['event']['data']);
 
-        $publicTxnId = $charge->getMetadataParam(METADATA_INVOICEID_PARAM);
+        $txnId = $charge->getMetadataParam(METADATA_INVOICEID_PARAM);
+        $txtToken = $charge->getMetadataParam(METADATA_TOKEN_PARAM);
 
-        $transaction = $this->loadTransaction($publicTxnId);
+        $this->loadTransaction($txnId, $txtToken);
+        $this->validateBody($body);
+        $lastTimeLine = end($charge->timeline);
 
-        $secretKey = $transaction->getPaymentMethod()->getSetting('secret_key');
+        switch ($lastTimeLine['status']) {
+            case 'RESOLVED':
+            case 'COMPLETED':
+                $this->handlePaid($charge);
+                break;
+            case 'PENDING':
+                $status = Transaction::STATUS_SUCCESS;
+                break;
+            case 'NEW':
+                $status = Transaction::STATUS_INPROGRESS;
+                break;
+            case 'UNRESOLVED':
+                // mark order as paid on overpaid or delayed
+                if ($lastTimeLine['context'] === 'OVERPAID' || $lastTimeLine['context'] === 'DELAYED') {
+                    $status = Transaction::STATUS_SUCCESS;
+                } else {
+                    $status = Transaction::STATUS_FAILED;
+                }
+                break;
+            case 'CANCELED':
+                $status = Transaction::STATUS_CANCELED;
+                break;
+            case 'EXPIRED':
+                $status = Transaction::STATUS_FAILED;
+                break;
+        }
+
+        foreach ($charge->payments as $payment) {
+            if (strtolower($payment['status']) === 'confirmed') {
+                $transactionId = $payment['transaction_id'];
+                $total = isset($payment['value']['local']['amount']) ? $payment['value']['local']['amount'] : '';
+                $currency = isset($payment['value']['local']['currency']) ? $payment['value']['local']['currency'] : '';
+                $cryptototal = isset($payment['value']['crypto']['amount']) ? $payment['value']['crypto']['amount'] : '';
+                $cryptoCurrency = isset($payment['value']['crypto']['currency']) ? $payment['value']['crypto']['currency'] : '';
+
+                $this->transaction->setDataCell('remote_txn', $transactionId, 'Remote transaction ID');
+                $this->transaction->setDataCell('total', $total, 'Total');
+                $this->transaction->setDataCell('currency', $currency, 'Currency');
+                $this->transaction->setDataCell('crypto_total', $cryptototal, 'Crypto total');
+                $this->transaction->setDataCell('crypto_currency', $cryptoCurrency, 'Crypto currency');
+                break;
+            }
+        }
+
+        $this->setTransactionStatus($status);
+    }
+
+    private function validateBody($body)
+    {
+        $secretKey = $this->transaction->getPaymentMethod()->getSetting('secret_key');
         $headers = array_change_key_case(getallheaders());
         $signatureHeader = isset($headers[SIGNATURE_HEADER]) ? $headers[SIGNATURE_HEADER] : null;
 
@@ -39,62 +89,50 @@ class CoinbaseIpn extends \XLite\Controller\Customer\ACustomer
             \CoinbaseSDK\Webhook::verifySignature($body, $signatureHeader, $secretKey);
         } catch (\Exception $exception) {
             $this->markCallbackRequestAsInvalid($exception->getMessage());
+            return false;
         }
 
-        if ($transaction->getDataCell(METADATA_TOKEN_PARAM) != $charge->getMetadataParam(METADATA_TOKEN_PARAM)) {
-            $this->markCallbackRequestAsInvalid('Invalid token.');
-        }
-
-        switch ($event->type) {
-            case self::EVENT_FAILED:
-            case self::EVENT_DELAYED:
-                $transaction->setStatus($transaction::STATUS_FAILED);
-                \XLite\Core\Database::getEM()->flush();
-
-                break;
-            case self::EVENT_CONFIRMED:
-                $transactionId = '';
-                $total = '';
-                $currency = '';
-
-                foreach ($charge->payments as $payment) {
-                    if (strtolower($payment['status']) === 'confirmed') {
-                        $transactionId = $payment['transaction_id'];
-                        $total = isset($payment['value']['local']['amount']) ? $payment['value']['local']['amount'] : $total;
-                        $currency = isset($payment['value']['local']['currency']) ? $payment['value']['local']['currency'] : $currency;
-                    }
-                }
-                $transaction->setDataCell('remote_txn', $transactionId, 'Founded coinbase commerce transaction');
-                $transaction->setStatus($transaction::STATUS_SUCCESS);
-                \XLite\Core\Database::getEM()->flush();
-
-                $cart = $transaction->getOrder();
-
-                if ($cart instanceof \XLite\Model\Cart) {
-                    $cart->tryClose();
-                }
-
-                $transaction->getOrder()->setPaymentStatusByTransaction($transaction);
-                $transaction->getOrder()->update();
-                break;
-            default:
-                $transaction->setStatus($transaction::STATUS_PENDING);
-                \XLite\Core\Database::getEM()->flush();
-        }
-
+        return true;
     }
 
-    private function loadTransaction($publicTxnId)
+    private function setTransactionStatus($status, $transDataCells)
     {
-        $transaction = \Xlite\Core\Database::getRepo('XLite\Model\Payment\Transaction')->findOneBy(
+        if (!$this->transaction) {
+            return;
+        }
+
+        $this->transaction->setStatus($status);
+        $this->transaction->registerTransactionInOrderHistory();
+
+        \XLite\Core\Database::getEM()->flush();
+
+        $order = $this->transaction->getOrder();
+
+        if ($order instanceof \XLite\Model\Cart) {
+            $order->tryClose();
+        }
+
+        $order->setPaymentStatusByTransaction($this->transaction);
+        $order->update();
+    }
+
+    private function loadTransaction($publicTxnId, $token)
+    {
+        $this->transaction = \Xlite\Core\Database::getRepo('XLite\Model\Payment\Transaction')->findOneBy(
             ['public_id' => $publicTxnId]
         );
 
-        if (!$transaction) {
+        if (!$this->transaction) {
             $this->markCallbackRequestAsInvalid('Transaction was not found. Transaction Id:' . $publicTxnId);
+            return false;
         }
 
-        return $transaction;
+        if ($this->transaction->getDataCell(METADATA_TOKEN_PARAM)->getValue() != $token) {
+           $this->markCallbackRequestAsInvalid('Invalid token.');
+            return false;
+        }
+
+        return $this->transaction;
     }
 
     /**

@@ -9,10 +9,9 @@ XLite\Model\Payment\Method:
   - service_name: CoinbaseCommercePayment
     class: Module\Coinbase\CoinbaseCommercePayment\Model\Payment\Processor\CoinbaseCommercePayment
     type: N
-    countries: [US, CA]
     translations:
       - code: en
-        name: CoinbaseCommercePayment
+        name: Coinbase Commerce
     settings:
       - name: app_key
       - name: secret_key

@@ -30,7 +30,7 @@ abstract class Main extends \XLite\Module\AModule
      */
     public static function getModuleName()
     {
-        return 'Coinbase Commerce Payment gateway';
+        return 'Coinbase Commerce Payment Method';
     }
 
     /**
@@ -40,7 +40,7 @@ abstract class Main extends \XLite\Module\AModule
      */
     public static function getDescription()
     {
-        return 'Coinbase Commerce  - Bitcoin/Bitcoin Cash/Litecoin/Etherium Payments';
+        return 'Coinbase Commerce  - Bitcoin/Bitcoin Cash/Litecoin/Ethereum Payments';
     }
 
     /**
@@ -60,7 +60,7 @@ abstract class Main extends \XLite\Module\AModule
      */
     public static function getMinorVersion()
     {
-        return '5';
+        return '0';
     }
 
 
