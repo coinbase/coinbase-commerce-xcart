@@ -44,8 +44,8 @@ class CoinbaseIpn extends \XLite\Controller\Customer\ACustomer
                 $status = Transaction::STATUS_INPROGRESS;
                 break;
             case 'UNRESOLVED':
-                // mark order as paid on overpaid or delayed
-                if ($lastTimeLine['context'] === 'OVERPAID' || $lastTimeLine['context'] === 'DELAYED') {
+                // mark order as paid on overpaid
+                if ($lastTimeLine['context'] === 'OVERPAID') {
                     $status = Transaction::STATUS_SUCCESS;
                 } else {
                     $status = Transaction::STATUS_FAILED;

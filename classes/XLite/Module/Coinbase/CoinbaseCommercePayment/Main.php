@@ -40,7 +40,7 @@ abstract class Main extends \XLite\Module\AModule
      */
     public static function getDescription()
     {
-        return 'Coinbase Commerce  - Bitcoin/Bitcoin Cash/Litecoin/Ethereum Payments';
+        return 'Coinbase Commerce - Bitcoin/Bitcoin Cash/Litecoin/Ethereum Payments';
     }
 
     /**

@@ -37,7 +37,7 @@ class CoinbaseCommercePayment extends \XLite\Model\Payment\Base\WebBased
         if (\XLite\Core\Request::getInstance()->cancel) {
             $this->setDetail(
                 'status',
-                'Customer has canceled checkout before completing their payments',
+                'Customer has canceled the checkout before completing their payment',
                 'Status'
             );
             $this->transaction->setNote('Customer has canceled checkout before completing their payments');
