@@ -1,17 +1,8 @@
-# Coinbase Commerce OsCommerce Payment Module
-
-# Installation
-1. Signup for an account at [Coinbase Commerce](https://commerce.coinbase.com/).
-2. Create an API Key by going to the Settings tab in the Coinbase Commerce dashboard.
-3. Download zip archive from [release page](https://github.com/coinbase/coinbase-commerce-zencart/releases) and unzip or clone plugin and run `composer install` inside clonned folder
-4. Copy content of src folder to the root of your zencart's installation. Check your /modules/payment should contain coinbase.php and coinbase folder
-5. Log in to admin area
-6. Go to Modules -> Payment link, click on Coinbase Commerce and +Install
-7. Fill Api Key and Secret Shared Key, click safe
-8. Copy Webhook Url to Coinbase Commerce Dashboard
-
-# Integrate with other e-commerce platforms
-
-[Coinbase Commerce Integrations](https://commerce.coinbase.com/integrate)
-
-
+Installation
+1. Download zip archive from [release page](https://github.com/coinbase/coinbase-commerce-xcart/releases) and unzip or clone plugin and run `composer install` inside clonned folder
+2. Move module to your xcart site. Copy src/classes/XLite/Module/Coinbase to src/classes/XLite/Module/ and skins/admin/modules/Coinbase to skins/admin/modules/.
+3. Re-deploy the store. Go to "System tools"/"Cache management" and click Start button in "Re-deploy the store" section
+4. Activate module. Go to "My Addons", find Coinbase Commerce Payment Method switch to ON and click Save changes button.
+5. Go to "Store setup"/"Payment methods" activate Coinbase Commerce and click Configure
+6. Copy "App Key" and "Secret Key" from "Settings" page of Coinbase Commerce Dashboard (https://commerce.coinbase.com/dashboard/settings).
+7. Copy Webhook Url from module's configuration page to Coinbase Commerce Dashboard

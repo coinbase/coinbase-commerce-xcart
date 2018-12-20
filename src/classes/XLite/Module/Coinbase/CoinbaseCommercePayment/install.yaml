@@ -1,0 +1,20 @@
+# vim: set ts=2 sw=2 sts=2 et:
+#
+# Fixtures
+#
+# Copyright (c) 2011-present Qualiteam software Ltd. All rights reserved.
+# See https://www.x-cart.com/license-agreement.html for license details.
+
+XLite\Model\Payment\Method:
+  - service_name: CoinbaseCommercePayment
+    class: Module\Coinbase\CoinbaseCommercePayment\Model\Payment\Processor\CoinbaseCommercePayment
+    type: N
+    translations:
+      - code: en
+        name: Coinbase Commerce
+    settings:
+      - name: app_key
+      - name: secret_key
+XLite\Model\LanguageLabel:
+  - { name: "API Key", translations: [{ code: en, label: "API Key" }] }
+  - { name: "Shared Secret", translations: [{ code: en, label: "Shared Secret" }] }
